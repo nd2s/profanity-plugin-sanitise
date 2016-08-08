@@ -9,9 +9,9 @@ import prof
 #   Automatically detect contacts' client and sanitise if necessary. 
 # 
 # Version 2:
-#   "/sanitise on|off": global auto detect settings
-#   "/sanitise <jid> on|off|<mode>": settings per JID, autodetect, off, or
-#                                    a special "mode" if there are any. 
+#   "/sanitise on|off": global auto detect setting
+#   "/sanitise <jid> on|off|<mode>": setting per JID: can be autodetect, off,
+#                                    or a special "mode" (if there are any).
 
 # Stores client information. JID/str~>Client/str.
 clients = {}
@@ -61,7 +61,7 @@ def sanitise(message):
 
 def try_sanitise(message):
     """ Same as 'sanitise' but returns unmodified message if it encounters
-        a problem, except for raising an exception.
+        a problem, instead of throwing an exception.
     """
     try:
         return sanitise(message)
@@ -69,7 +69,7 @@ def try_sanitise(message):
         return message
 
 def substitude(elem):
-    """ Substitudes an lxml element with a strings representation.
+    """ Substitudes an lxml element with a string representation.
     """
     if type(elem) is _ElementUnicodeResult:
         return str(elem)
