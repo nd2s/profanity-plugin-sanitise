@@ -5,40 +5,68 @@ import prof
 
 # ROADMAP
 #
-# Version 1:
-#   Automatically detect contacts' client and sanitise if necessary. 
-# 
 # Version 2:
 #   "/sanitise on|off": global auto detect setting
 #   "/sanitise <jid> on|off|<mode>": setting per JID: can be autodetect, off,
 #                                    or a special "mode" (if there are any).
 
+iq_count = 1
+
 # Stores client information. JID/str~>Client/str.
 clients = {}
-
-def prof_init(version, status, account_name, jid):
-    # TODO
-    pass
 
 def prof_on_presence_stanza_receive(stanza):
     """ Send a software version request when a contact comes online.
     """
-    # TODO
+    full_jid = etree.fromstring(stanza).get("from")
+    if full_jid:
+        send_version_request(full_jid)
     return True
+
+def send_version_request(full_jid):
+    global iq_count
+
+    iq = etree.Element("iq", {
+        "type": "get",
+        "to":   full_jid,
+        "id":   "sanitiser_" + str(iq_count)
+    })
+    etree.SubElement(iq, "query", {
+        "xmlns": "jabber:iq:version"
+    })
+
+    iq_count = iq_count + 1
+    prof.send_stanza(etree.tostring(iq))
 
 def prof_on_iq_stanza_receive(stanza):
     """ Listen for software version responses and save results in the
         'clients' store.
     """
-    # TODO
-    return True
+    iq = etree.fromstring(stanza)
+    id = iq.get("id")
+    if not id:
+        return True
+    if not id.startswith("sanitiser_"):
+        return True
+    full_jid = iq.get("from")
+    if not full_jid:
+        return False
 
-def prof_pre_chat_message_display(jid, message):
+    query = iq.find("{jabber:iq:version}query")
+    if query is None:
+        return False
+    client = query.find("{jabber:iq:version}name")
+    if client is not None:
+        clients[full_jid] = client.text
+    return False
+
+def prof_pre_chat_message_display(jid, resource, message):
     """ Sanitises chat room messages if necessary.
     """
-    if jid not in clients:
+    full_jid = "%s/%s" % (jid, resource)
+    if full_jid not in clients:
         return message
-    return get_sanitiser(clients[jid])(message)
+    return get_sanitiser(clients[full_jid])(message)
 
 # Sanitiser functions:
 
