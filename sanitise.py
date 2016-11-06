@@ -1,6 +1,6 @@
 from io import StringIO
 from lxml import etree
-from lxml.etree import _ElementUnicodeResult 
+from lxml.etree import _ElementUnicodeResult, _ElementStringResult
 import prof
 
 # ROADMAP
@@ -51,7 +51,7 @@ def prof_on_iq_stanza_receive(stanza):
     full_jid = iq.get("from")
     if not full_jid:
         return False
-
+ 
     query = iq.find("{jabber:iq:version}query")
     if query is None:
         return False
@@ -75,7 +75,7 @@ def get_sanitiser(client):
         Jabber client (string).
     """
     if client.startswith('Adium'):
-        return try_sanitise
+        return sanitise
     else:
         return lambda msg: msg
 
@@ -83,7 +83,7 @@ def sanitise(message):
     """ Cleans message from HTML. Raises exceptions on problems.
     """
     parser = etree.HTMLParser()
-    tree = etree.parse(StringIO(message), parser)
+    tree = etree.parse(StringIO(unicode(message)), parser)
     elems = tree.xpath('(//br|//a|//*[not(self::a)]/text())')
     return "".join(map(substitude, elems))
 
@@ -99,7 +99,7 @@ def try_sanitise(message):
 def substitude(elem):
     """ Substitudes an lxml element with a string representation.
     """
-    if type(elem) is _ElementUnicodeResult:
+    if type(elem) in (_ElementUnicodeResult, _ElementStringResult):
         return str(elem)
     else:
         if elem.tag == 'br':
